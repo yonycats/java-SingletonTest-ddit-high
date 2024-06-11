@@ -1,7 +1,6 @@
 package kr.or.ddit.member.dao;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -187,6 +186,83 @@ public class MemberDaoImplwuthJDBC implements IMemberDao {
 				mv.setRegDt(regDt);
 				
 				memList.add(mv);
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			JDBCUtil3.close(conn, stmt, pstmt, rs);
+		}
+		
+		return memList;
+	}
+	
+
+	// 다이나믹 쿼리 작성, 다중 조건 검색
+	@Override
+	public List<MemberVO> searchMember(MemberVO mv) {
+		
+		List<MemberVO> memList = new ArrayList<MemberVO>();
+		
+		try {
+			conn = JDBCUtil3.getConnection();
+			
+			String sql = " SELECT * FROM MYMEMBER WHERE 1=1 ";
+			
+			// 사용자가 뭔가 입력을 한 경우 true가 됨
+			// 원하는 조건의 값만 넣어서 쿼리가 만들어질 수 있다.
+			// preparestatment 를 위한 다이나믹 쿼리문 => 객체가 만들어질 것임
+			if ( mv.getMemId() != null && !mv.getMemId().equals("") ) {
+				sql += " AND MEM_ID = ? ";
+			}
+			if ( mv.getMemName() != null && !mv.getMemName().equals("") ) {
+				sql += " AND MEM_NAME = ? ";
+			}
+			if ( mv.getMemTel() != null && !mv.getMemTel().equals("") ) {
+				sql += " AND MEM_TEL = ? ";
+			}
+			if ( mv.getMemAddr() != null && !mv.getMemAddr().equals("") ) {
+				sql += " AND MEM_ADDR LIKE '%' || ? || '%' ";
+			}
+			
+			pstmt = conn.prepareStatement(sql);
+			
+			// ++을 넣어서 인덱스 값을 1씩 증가시킴
+			int paramIndex = 1;
+			
+			// 물음표 안에 있는 값들을 적절하게 세팅함
+			if ( mv.getMemId() != null && !mv.getMemId().equals("") ) {
+				pstmt.setString(paramIndex++, mv.getMemId());
+			}
+			if ( mv.getMemName() != null && !mv.getMemName().equals("") ) {
+				pstmt.setString(paramIndex++, mv.getMemName());
+			}
+			if ( mv.getMemTel() != null && !mv.getMemTel().equals("") ) {
+				pstmt.setString(paramIndex++, mv.getMemTel());
+			}
+			if ( mv.getMemAddr() != null && !mv.getMemAddr().equals("") ) {
+				pstmt.setString(paramIndex++, mv.getMemAddr());
+			}
+			
+			// 쿼리 실행하기 -> execute
+			rs = pstmt.executeQuery();
+			
+			while (rs.next()) {
+				String memId = rs.getNString("mem_id");
+				String memName = rs.getNString("mem_name");
+				String memTel = rs.getNString("mem_tel");
+				String memAddr = rs.getNString("mem_addr");
+				
+				LocalDate regDt = rs.getTimestamp("reg_dt").toLocalDateTime().toLocalDate();
+				
+				MemberVO mv2 = new MemberVO();
+				mv2.setMemId(memId);
+				mv2.setMemName(memName);
+				mv2.setMemTel(memTel);
+				mv2.setMemAddr(memAddr);
+				mv2.setRegDt(regDt);
+				
+				memList.add(mv2);
 			}
 			
 		} catch (SQLException e) {
